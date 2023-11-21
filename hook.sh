@@ -72,6 +72,14 @@ check_file() {
 
 # Actual hook logic:
 
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+	against=HEAD
+else
+	# Initial commit: diff against an empty tree object
+	against=$(git hash-object -t tree /dev/null)
+fi
+
 MATCH=$(git config --get-all hooks.confirm.match)
 if [ -z "$MATCH" ]; then
     echo "Git-Confirm: hooks.confirm.match not set, defaulting to 'TODO'"
@@ -79,7 +87,7 @@ if [ -z "$MATCH" ]; then
     MATCH='TODO'
 fi
 
-for file in `git diff --cached -p --name-status | cut -c3-`; do
+for file in `git diff --cached --name-only --diff-filter=ACMR $against`; do
     for match_pattern in $MATCH
     do
         check_file $file $match_pattern
